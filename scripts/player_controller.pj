@@ -1,0 +1,13 @@
+// Ovladanie hraca (WSAD / Sipky + Medzernik skok)
+let hAxis = Input_getAxis("horizontal");
+let vAxis = Input_getAxis("vertical");
+let speed = 200.0;
+
+if (hAxis != 0.0 || vAxis != 0.0) {
+    Entity_setVelocity(0, hAxis * speed, vAxis * speed);
+}
+
+if (Input_isKeyDown("space")) {
+    Entity_applyImpulse(0, 0.0, -320.0);
+    Audio_playSound("jump.wav", "sfx", 0.75);
+}

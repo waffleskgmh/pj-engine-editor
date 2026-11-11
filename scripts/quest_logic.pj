@@ -1,0 +1,7 @@
+// Kontrola a postup v ulohe
+let questId = "q_goblin_slayer";
+
+if (Inventory_hasItem("iron_key", 1)) {
+    Quest_advance(questId, 1);
+    Game_log("Uloha 'Zelezny kluc' bola uspesne aktualizovana!");
+}

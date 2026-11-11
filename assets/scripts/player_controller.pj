@@ -1,0 +1,15 @@
+// PJ Script: Ovladanie hraca (WSAD / Sipky + Medzernik)
+
+let h = Input_getAxis("horizontal");
+let speed = 220.0;
+
+if (h != 0.0) {
+    let v = Entity_getVelocity(0);
+    Entity_setVelocity(0, h * speed, v.y);
+}
+
+if (Input_isKeyDown("space")) {
+    // Skok s impulzom
+    Entity_applyImpulse(0, 0.0, -15.0);
+    Game_log("Hrac vyskocil!");
+}

@@ -1,0 +1,22 @@
+# Skompilované binárky
+pj
+test_engine
+pj-game
+pj-studio
+
+# Objektové súbory a build artefakty
+*.o
+*.d
+build/
+bin/
+
+# Dočasné a testovacie dáta
+save_slot_*.dat
+*.meta.bak
+
+# Systémové súbory macOS
+.DS_Store
+*.dSYM/
+
+# VS Code lokálne nastavenia (voliteľné)
+.vscode/ipch/

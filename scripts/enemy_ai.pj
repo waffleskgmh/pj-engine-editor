@@ -1,0 +1,18 @@
+// AI prenasledovania pre nepriatela
+let enemyId = 1;
+let playerPos = Entity_getPosition(0);
+let enemyPos = Entity_getPosition(enemyId);
+
+if (playerPos != null && enemyPos != null) {
+    let dx = playerPos.x - enemyPos.x;
+    let dy = playerPos.y - enemyPos.y;
+    let distSq = dx * dx + dy * dy;
+
+    if (distSq < 32400.0) {
+        let speed = 75.0;
+        let dirX = 0.0;
+        if (dx > 0.0) { dirX = 1.0; }
+        if (dx < 0.0) { dirX = -1.0; }
+        Entity_setVelocity(enemyId, dirX * speed, 0.0);
+    }
+}
