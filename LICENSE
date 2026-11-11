@@ -1,37 +1,60 @@
-MIT License
+PJ STUDIO & PJ ENGINE - PROPRIETARY COMMERCIAL SOFTWARE LICENSE
+Copyright (c) 2024-2026 Ján Jurči (waffleskgmh). All rights reserved.
 
-Copyright (c) 2024 PJ Engine / PJ Studio Contributors
+IMPORTANT: PLEASE READ THIS LICENSE CAREFULLY BEFORE USING THIS SOFTWARE.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+1. OWNERSHIP AND INTELLECTUAL PROPERTY
+The PJ Studio application, PJ Engine, PJ Programming Language, source code, 
+documentation, and all associated materials (collectively, the "Software") 
+are the exclusive intellectual property of Ján Jurči ("Author"). 
+The Software is protected by copyright laws and international copyright treaties.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+2. PROPRIETARY RIGHTS & RESTRICTIONS
+This Software is commercial and proprietary. No license or right to copy, 
+modify, reverse engineer, decompile, disassemble, redistribute, sublicense, 
+lease, or commercially exploit this source code, engine, or development tools 
+is granted without an explicit, valid commercial license agreement signed by 
+the Author.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+3. COMMERCIAL USE & DISTRIBUTION
+Any unauthorized reproduction, re-branding, or distribution of this Software, 
+in whole or in part, is strictly prohibited and constitutes a violation of law. 
+Commercial deployment, distribution of games built with the engine, or public 
+use of the development tools requires an active commercial license granted by 
+the Author.
+
+4. DISCLAIMER OF WARRANTY
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT. IN NO EVENT 
+SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES, LOSS OF DATA, OR OTHER 
+LIABILITY ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR ITS USE.
 
 -------------------------------------------------------------------------------
-Third-Party Software Acknowledgments:
+THIRD-PARTY SOFTWARE NOTICES & LICENSES:
 
-1. Dear ImGui (Docking branch)
+This Software incorporates components from the following third-party libraries 
+under their respective permissive licenses:
+
+1. Dear ImGui
    Copyright (c) 2014-2024 Omar Cornut
-   Licensed under the MIT License.
+   Licensed under the MIT License:
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files, to deal in the Software 
+   without restriction, including without limitation the rights to use, copy, 
+   modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+   Software, subject to the conditions that the copyright notice is included.
 
 2. Simple DirectMedia Layer (SDL2)
    Copyright (c) 1997-2024 Sam Lantinga <slouken@libsdl.org>
-   Licensed under the zlib License.
+   Licensed under the zlib License:
+   This software is provided 'as-is', without any express or implied warranty.
+   In no event will the authors be held liable for any damages arising from the 
+   use of this software. Permission is granted to anyone to use this software 
+   for any purpose, including commercial applications, and to alter it and 
+   redistribute it freely.
 
 3. stb_image / stb libraries
    Created by Sean Barrett and contributors
-   Licensed under the MIT License / Public Domain.
+   Licensed under Public Domain / MIT License.
 -------------------------------------------------------------------------------
