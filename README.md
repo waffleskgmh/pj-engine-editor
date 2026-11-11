@@ -87,4 +87,4 @@ PJ Engine Native is distributed under the MIT License. See [LICENSE](LICENSE) fo
 
 PJ Engine Native is an actively developed project. Features, APIs and internal architecture may change as development progresses.
 
-Contributions, suggestions and bug reports are welcome.
+Contributions, suggestions and bug reports are welcome.# pj-engine-editor
