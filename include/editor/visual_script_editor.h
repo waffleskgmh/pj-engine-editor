@@ -9,7 +9,7 @@ namespace PJEngine {
 struct GraphNode {
     std::string id;
     std::string title;
-    std::string type; // "event", "action", "math"
+    std::string type;
     Vec2 position;
     std::string customValue;
 };
@@ -27,8 +27,8 @@ public:
     void addNode(const std::string& id, const std::string& title, const std::string& type, const Vec2& pos, const std::string& val = "");
     void connect(const std::string& fromId, const std::string& toId);
     
-    // Automatický generátor čistého PJ kódu z grafu uzlov
     std::string compileToPJScript() const;
+    void renderGUI();
 };
 
 } // namespace PJEngine

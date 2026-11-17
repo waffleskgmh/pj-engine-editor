@@ -17,7 +17,8 @@ SRC_CORE = src/engine/core/math2d.cpp \
            src/engine/core/memory_pool.cpp \
            src/engine/core/logger.cpp
 
-SRC_ECS = src/engine/ecs/ecs_world.cpp
+SRC_ECS = src/engine/ecs/ecs_world.cpp \
+          src/engine/ecs/component_registry.cpp
 
 SRC_PHYSICS = src/engine/physics/rigidbody2d.cpp \
               src/engine/physics/collider2d.cpp \
@@ -50,7 +51,10 @@ SRC_AUDIO = src/engine/audio/audio_engine.cpp
 SRC_SCENE = src/engine/scene/scene_node.cpp \
             src/engine/scene/scene.cpp \
             src/engine/scene/scene_manager.cpp \
-            src/engine/scene/map_transition.cpp
+            src/engine/scene/map_transition.cpp \
+            src/engine/scene/prefab.cpp
+
+SRC_INPUT = src/engine/input/input_manager.cpp
 
 SRC_OPTIMIZATION = src/engine/optimization/culling2d.cpp \
                    src/engine/optimization/quality_manager.cpp
@@ -105,8 +109,9 @@ SRC_IMGUI = vendor/imgui/imgui.cpp \
 OBJ_ALL = $(SRC_CORE:.cpp=.o) $(SRC_ECS:.cpp=.o) $(SRC_PHYSICS:.cpp=.o) \
           $(SRC_GRAPHICS:.cpp=.o) $(SRC_ASSETS:.cpp=.o) $(SRC_TILEMAP:.cpp=.o) \
           $(SRC_ANIMATION:.cpp=.o) $(SRC_AUDIO:.cpp=.o) $(SRC_SCENE:.cpp=.o) \
-          $(SRC_OPTIMIZATION:.cpp=.o) $(SRC_FLOW:.cpp=.o) $(SRC_UI:.cpp=.o) \
-          $(SRC_GAMEPLAY:.cpp=.o) $(SRC_PROJECT:.cpp=.o) $(SRC_PJ:.cpp=.o) $(SRC_BRIDGE:.cpp=.o)
+          $(SRC_INPUT:.cpp=.o) $(SRC_OPTIMIZATION:.cpp=.o) $(SRC_FLOW:.cpp=.o) \
+          $(SRC_UI:.cpp=.o) $(SRC_GAMEPLAY:.cpp=.o) $(SRC_PROJECT:.cpp=.o) \
+          $(SRC_PJ:.cpp=.o) $(SRC_BRIDGE:.cpp=.o)
 
 OBJ_EDITOR = $(SRC_EDITOR:.cpp=.o) $(SRC_IMGUI:.cpp=.o)
 

@@ -3,77 +3,67 @@
 
 #include <fstream>
 #include <sstream>
-#include <sys/stat.h>
-#include <dirent.h>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 namespace PJEngine {
 
 bool ProjectExporter::copyDirectoryRecursive(const std::string& src, const std::string& dst) {
-    mkdir(dst.c_str(), 0755);
+    if (!fs::exists(src)) return false;
 
-    DIR* dir = opendir(src.c_str());
-    if (!dir) return false;
+    fs::create_directories(dst);
+    for (const auto& entry : fs::recursive_directory_iterator(src)) {
+        const auto& path = entry.path();
+        auto relative = fs::relative(path, src);
+        auto target = fs::path(dst) / relative;
 
-    struct dirent* entry;
-    while ((entry = readdir(dir)) != nullptr) {
-        std::string name = entry->d_name;
-        if (name == "." || name == "..") continue;
-
-        std::string srcPath = src + "/" + name;
-        std::string dstPath = dst + "/" + name;
-        struct stat st;
-        if (stat(srcPath.c_str(), &st) == -1) continue;
-
-        if (S_ISDIR(st.st_mode)) {
-            copyDirectoryRecursive(srcPath, dstPath);
-        } else if (S_ISREG(st.st_mode)) {
-            std::ifstream in(srcPath, std::ios::binary);
-            std::ofstream out(dstPath, std::ios::binary);
-            if (in.is_open() && out.is_open()) {
-                out << in.rdbuf();
-            }
+        if (fs::is_directory(path)) {
+            fs::create_directories(target);
+        } else if (fs::is_regular_file(path)) {
+            fs::copy_file(path, target, fs::copy_options::overwrite_existing);
         }
     }
-    closedir(dir);
     return true;
 }
 
 bool ProjectExporter::createExecutableScript(const std::string& outputFolder, const std::string& gameName, ExportTargetPlatform target) {
-    std::string runnerPath = outputFolder + "/run_game.sh";
-    std::ofstream sh(runnerPath);
-    if (!sh.is_open()) return false;
+    if (target == ExportTargetPlatform::MACOS_DESKTOP || target == ExportTargetPlatform::RASPBERRY_PI_ARM || target == ExportTargetPlatform::LINUX_DESKTOP) {
+        std::string runnerPath = outputFolder + "/run_game.sh";
+        std::ofstream sh(runnerPath);
+        if (!sh.is_open()) return false;
 
-    sh << "#!/bin/bash\n";
-    sh << "# Automaticky vygenerovany spusstac hry: " << gameName << "\n";
-    sh << "cd \"$(dirname \"$0\")\"\n";
+        sh << "#!/bin/bash\n";
+        sh << "# Launcher pre hru: " << gameName << "\n";
+        sh << "cd \"$(dirname \"$0\")\"\n";
+        sh << "./pj-game\n";
+        sh.close();
 
-    if (target == ExportTargetPlatform::RASPBERRY_PI_ARM) {
-        sh << "echo \"Spustam hru na Raspberry Pi...\"\n";
+        fs::permissions(runnerPath, fs::perms::owner_all | fs::perms::group_read | fs::perms::others_read, fs::perm_options::add);
     } else {
-        sh << "echo \"Spustam hru pre desktop...\"\n";
+        std::string batchPath = outputFolder + "/run_game.bat";
+        std::ofstream bat(batchPath);
+        if (!bat.is_open()) return false;
+
+        bat << "@echo off\n";
+        bat << "cd /d \"%~dp0\"\n";
+        bat << "start pj-game.exe\n";
+        bat.close();
     }
-
-    sh << "./pj-game\n";
-    sh.close();
-
-    chmod(runnerPath.c_str(), 0755);
     return true;
 }
 
 bool ProjectExporter::exportStandaloneGame(const ProjectConfig& config, ExportTargetPlatform target, const std::string& outputFolder) {
     Logger::info("Zacinam export projektu: " + config.projectName);
 
-    // 1. Vytvorenie cieľového priečinka
-    mkdir(outputFolder.c_str(), 0755);
+    fs::create_directories(outputFolder);
 
-    // 2. Skopírovanie všetkých herných assetov (scény, skripty, textúry, dlaždice)
     std::string targetAssetDir = outputFolder + "/assets";
     if (!copyDirectoryRecursive(config.assetDirectory, targetAssetDir)) {
         Logger::error("Zlyhalo kopirovanie assetov do exportneho balika!");
         return false;
     }
 
-    // 3. Uloženie konfigurácie pre standalone runtime
     std::string configPath = outputFolder + "/game_config.dat";
     std::ofstream cfg(configPath);
     if (cfg.is_open()) {
@@ -81,25 +71,17 @@ bool ProjectExporter::exportStandaloneGame(const ProjectConfig& config, ExportTa
         cfg.close();
     }
 
-    // 4. Skopírovanie samostatnej hernej binárky (pj-game)
     std::string srcBin = "./pj-game";
     std::string dstBin = outputFolder + "/pj-game";
-    std::ifstream binIn(srcBin, std::ios::binary);
-    std::ofstream binOut(dstBin, std::ios::binary);
-    if (binIn.is_open() && binOut.is_open()) {
-        binOut << binIn.rdbuf();
-        binIn.close();
-        binOut.close();
-        chmod(dstBin.c_str(), 0755);
-        Logger::info("Binarka hry (pj-game) uspesne zbalena.");
-    } else {
-        Logger::warn("Binarka ./pj-game nebola najdena v koreni, nezabudnite ju skompilovat.");
+    if (fs::exists(srcBin)) {
+        fs::copy_file(srcBin, dstBin, fs::copy_options::overwrite_existing);
+        fs::permissions(dstBin, fs::perms::owner_all | fs::perms::group_read | fs::perms::others_read, fs::perm_options::add);
+        Logger::info("Binarka hry uspesne zbalena.");
     }
 
-    // 5. Vytvorenie spúšťača
     createExecutableScript(outputFolder, config.projectName, target);
 
-    Logger::info("[EXPORT DOKONCENY]: Hra bola uspesne exportovana do: " + outputFolder);
+    Logger::info("[EXPORT DOKONCENY]: Hra exportovana do: " + outputFolder);
     return true;
 }
 

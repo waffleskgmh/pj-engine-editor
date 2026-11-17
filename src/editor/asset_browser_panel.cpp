@@ -2,15 +2,16 @@
 #include "engine/core/logger.h"
 #include "imgui.h"
 
-#include <dirent.h>
-#include <sys/stat.h>
+#include <filesystem>
 #include <fstream>
 #include <algorithm>
+
+namespace fs = std::filesystem;
 
 namespace PJEngine {
 
 AssetBrowserPanel::AssetBrowserPanel() {
-    mkdir(rootPath.c_str(), 0755);
+    fs::create_directories(rootPath);
     refreshDirectory();
 }
 
@@ -22,39 +23,29 @@ void AssetBrowserPanel::setCurrentDirectory(const std::string& path) {
 void AssetBrowserPanel::refreshDirectory() {
     currentItems.clear();
 
-    DIR* dir = opendir(currentDirectory.c_str());
-    if (!dir) return;
+    if (!fs::exists(currentDirectory) || !fs::is_directory(currentDirectory)) {
+        return;
+    }
 
-    struct dirent* entry;
-    while ((entry = readdir(dir)) != nullptr) {
-        std::string name = entry->d_name;
-        if (name == "." || name == "..") continue;
-
-        // Preskakujeme metadáta
-        if (name.length() >= 5 && name.substr(name.length() - 5) == ".meta") {
+    for (const auto& entry : fs::directory_iterator(currentDirectory)) {
+        std::string filename = entry.path().filename().string();
+        if (filename.length() >= 5 && filename.substr(filename.length() - 5) == ".meta") {
             continue;
         }
 
-        std::string fullPath = currentDirectory + "/" + name;
-        struct stat st;
-        if (stat(fullPath.c_str(), &st) == -1) continue;
-
         DirectoryItem item;
-        item.name = name;
-        item.fullPath = fullPath;
-        item.isDirectory = S_ISDIR(st.st_mode);
+        item.name = filename;
+        item.fullPath = entry.path().string();
+        item.isDirectory = entry.is_directory();
 
         if (!item.isDirectory) {
-            size_t dotPos = name.find_last_of('.');
-            std::string ext = (dotPos != std::string::npos) ? name.substr(dotPos) : "";
+            std::string ext = entry.path().extension().string();
             item.type = AssetDatabase::detectAssetTypeFromExtension(ext);
         }
 
         currentItems.push_back(item);
     }
-    closedir(dir);
 
-    // Zotriedenie: najprv priečinky, potom súbory podľa abecedy
     std::sort(currentItems.begin(), currentItems.end(), [](const DirectoryItem& a, const DirectoryItem& b) {
         if (a.isDirectory != b.isDirectory) return a.isDirectory > b.isDirectory;
         return a.name < b.name;
@@ -107,13 +98,11 @@ void AssetBrowserPanel::createNewScene(const std::string& filename) {
 void AssetBrowserPanel::render() {
     ImGui::Begin("Asset Browser");
 
-    // 1. Horná navigačná lišta (Breadcrumbs & Back button)
     if (currentDirectory != rootPath) {
         if (ImGui::Button("<- Spat")) {
-            size_t lastSlash = currentDirectory.find_last_of('/');
-            if (lastSlash != std::string::npos && lastSlash >= rootPath.length()) {
-                currentDirectory = currentDirectory.substr(0, lastSlash);
-            } else {
+            fs::path p(currentDirectory);
+            currentDirectory = p.parent_path().string();
+            if (currentDirectory.empty() || currentDirectory.length() < rootPath.length()) {
                 currentDirectory = rootPath;
             }
             refreshDirectory();
@@ -130,7 +119,6 @@ void AssetBrowserPanel::render() {
 
     ImGui::Separator();
 
-    // 2. Mriežka / Zoznam assetov s Drag & Drop
     float padding = 8.0f;
     float thumbnailSize = 75.0f;
     float cellSize = thumbnailSize + padding;
@@ -147,14 +135,12 @@ void AssetBrowserPanel::render() {
         const char* icon = getAssetTypeIcon(item.type, item.isDirectory);
         ImGui::Button(icon, ImVec2(thumbnailSize, thumbnailSize * 0.7f));
 
-        // Podpora pre Drag & Drop (ťahanie assetu myšou do scény alebo inšpektora)
         if (!item.isDirectory && ImGui::BeginDragDropSource()) {
             ImGui::SetDragDropPayload("PJ_ASSET_PATH", item.fullPath.c_str(), item.fullPath.length() + 1);
             ImGui::Text("Asset: %s", item.name.c_str());
             ImGui::EndDragDropSource();
         }
 
-        // Dvojklik otvorí priečinok alebo vyberie súbor
         if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
             if (item.isDirectory) {
                 currentDirectory = item.fullPath;
@@ -167,7 +153,6 @@ void AssetBrowserPanel::render() {
             }
         }
 
-        // Zobrazenie názvu pod ikonou
         ImGui::TextWrapped("%s", item.name.c_str());
         ImGui::NextColumn();
 
@@ -176,7 +161,6 @@ void AssetBrowserPanel::render() {
 
     ImGui::Columns(1);
 
-    // 3. Kontextové menu pri kliknutí pravým tlačidlom myši do prázdneho miesta
     if (ImGui::BeginPopupContextWindow(0, 1)) {
         if (ImGui::MenuItem("Vytvorit novy PJ skript")) {
             createNewScript("NovySkript");

@@ -1,4 +1,5 @@
 #include "editor/editor_app.h"
+#include "editor/scene_view.h"
 #include "editor/inspector_panel.h"
 #include "editor/asset_browser_panel.h"
 #include "editor/console_panel.h"
@@ -11,8 +12,10 @@
 #include "editor/editor_command.h"
 #include "engine/core/time_step.h"
 #include "engine/core/logger.h"
+#include "engine/scene/scene.h"
 
-#include <sys/stat.h>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 #if defined(__has_include)
   #if __has_include(<SDL2/SDL.h>)
@@ -37,20 +40,17 @@ using namespace PJEngine;
 int main(int argc, char* argv[]) {
     (void)argc; (void)argv;
 
-    // 1. Inicializácia SDL2 okna
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {
         std::cerr << "[Chyba]: SDL_Init zlyhalo: " << SDL_GetError() << std::endl;
         return 1;
     }
 
-    // Automatické vytvorenie štruktúry priečinkov projektu na disku
-    mkdir("assets", 0755);
-    mkdir("assets/scripts", 0755);
-    mkdir("assets/scenes", 0755);
-    mkdir("assets/textures", 0755);
-    mkdir("assets/maps", 0755);
-    mkdir("build", 0755);
-    mkdir("build/export", 0755);
+    // Automatická tvorba priečinkov cez C++17 filesystem (macOS, Linux, Windows)
+    fs::create_directories("assets/scripts");
+    fs::create_directories("assets/scenes");
+    fs::create_directories("assets/textures");
+    fs::create_directories("assets/maps");
+    fs::create_directories("build/export");
 
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     SDL_Window* window = SDL_CreateWindow(
@@ -69,7 +69,6 @@ int main(int argc, char* argv[]) {
         sdlRenderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
     }
 
-    // 2. Inicializácia Dear ImGui s Dockingom
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
@@ -90,7 +89,6 @@ int main(int argc, char* argv[]) {
     ImGui_ImplSDL2_InitForSDLRenderer(window, sdlRenderer);
     ImGui_ImplSDLRenderer2_Init(sdlRenderer);
 
-    // 3. Inštancie modulov editora a enginu
     EditorApp app;
     InspectorPanel inspectorPanel;
     AssetBrowserPanel assetBrowser;
@@ -103,7 +101,6 @@ int main(int argc, char* argv[]) {
     ProfilerPanel profiler;
     TimeStep timer;
 
-    // Prepínače viditeľnosti panelov
     bool showHierarchy = true;
     bool showInspector = true;
     bool showSceneView = true;
@@ -116,7 +113,6 @@ int main(int argc, char* argv[]) {
     bool showProjectSettings = false;
     bool showProfiler = true;
 
-    // Framebuffer textúra pre Scene View
     int sceneTexW = 800;
     int sceneTexH = 600;
     SDL_Texture* sceneTexture = SDL_CreateTexture(
@@ -126,16 +122,14 @@ int main(int argc, char* argv[]) {
         sceneTexW, sceneTexH
     );
 
-    // Tilemap pre editor
     Tilemap activeMap;
     activeMap.addLayer(TileLayer(40, 25, 16.0f));
 
     bool running = true;
     bool firstFrame = true;
 
-    Logger::info("PJ Studio 2D uspesne inicializovane a pripravene.");
+    Logger::info("PJ Studio 2D uspesne inicializovane.");
 
-    // 4. Hlavný aplikačný cyklus
     while (running) {
         timer.update();
         float dt = timer.getDeltaTime();
@@ -148,7 +142,6 @@ int main(int argc, char* argv[]) {
                 running = false;
             }
 
-            // Klávesové skratky pre Undo/Redo
             if (event.type == SDL_KEYDOWN) {
                 bool cmdOrCtrl = (event.key.keysym.mod & KMOD_GUI) || (event.key.keysym.mod & KMOD_CTRL);
                 if (cmdOrCtrl && event.key.keysym.sym == SDLK_z) {
@@ -159,13 +152,11 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        // Krokovanie Play Mode
         if (app.playState == PlayState::PLAYING) {
             app.stepFrame(dt);
         }
         profiler.recordFrame(dt, app.renderer.getStats().drawCalls, app.world.getEntityCount());
 
-        // Nový ImGui rámec
         ImGui_ImplSDLRenderer2_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
@@ -198,13 +189,30 @@ int main(int argc, char* argv[]) {
         }
 #endif
 
-        // Hlavné menu
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("File")) {
-                if (ImGui::MenuItem("New Scene", "Ctrl+N")) { app.initSampleScene(); }
+                if (ImGui::MenuItem("New Scene", "Ctrl+N")) {
+                    app.initSampleScene();
+                    Logger::info("Vytvorena nova scena.");
+                }
                 if (ImGui::MenuItem("Save Scene", "Ctrl+S")) {
-                    app.world.clear();
-                    Logger::info("Scena ulozena.");
+                    Scene sc("AktivnaScena");
+                    sc.world = app.world;
+                    if (sc.saveToFile("assets/scenes/active_scene.pjscene")) {
+                        Logger::info("Scena ulozena do assets/scenes/active_scene.pjscene");
+                    } else {
+                        Logger::error("Zlyhalo ulozenie sceny na disk!");
+                    }
+                }
+                if (ImGui::MenuItem("Load Scene", "Ctrl+O")) {
+                    auto loaded = Scene::loadFromFile("assets/scenes/active_scene.pjscene");
+                    if (loaded) {
+                        app.world = loaded->world;
+                        app.selectedEntity = NULL_ENTITY;
+                        Logger::info("Scena uspesne nacitana z disku.");
+                    } else {
+                        Logger::error("Subor assets/scenes/active_scene.pjscene sa nepodarilo otvorit.");
+                    }
                 }
                 ImGui::Separator();
                 if (ImGui::MenuItem("Project Settings")) { showProjectSettings = true; }
@@ -248,7 +256,6 @@ int main(int argc, char* argv[]) {
             ImGui::EndMainMenuBar();
         }
 
-        // Vykreslenie aktívnych panelov
         if (showHierarchy) {
             ImGui::Begin("Hierarchy", &showHierarchy);
             if (ImGui::Button("+ Pridat Entitu", ImVec2(-1, 24))) {
@@ -296,7 +303,6 @@ int main(int argc, char* argv[]) {
             ImGui::End();
         }
 
-        // Scene View portál
         if (showSceneView) {
             ImGui::Begin("Scene / Game View", &showSceneView);
 
@@ -312,6 +318,18 @@ int main(int argc, char* argv[]) {
             }
             ImGui::SameLine();
             ImGui::Text(app.playState == PlayState::PLAYING ? "[PLAY MODE: HRA BEZI]" : "[REZIM EDITORA]");
+
+            ImVec2 mousePos = ImGui::GetMousePos();
+            ImVec2 imgPos = ImGui::GetCursorScreenPos();
+            Vec2 relMouse(mousePos.x - imgPos.x, mousePos.y - imgPos.y);
+
+            bool isHovered = ImGui::IsWindowHovered();
+            bool isMouseDown = ImGui::IsMouseDown(0);
+            bool isMouseClicked = ImGui::IsMouseClicked(0);
+
+            if (isHovered && app.playState == PlayState::EDITING) {
+                SceneView::handleInput(app, relMouse, isMouseDown, isMouseClicked);
+            }
 
             ImVec2 viewSize = ImGui::GetContentRegionAvail();
             if (viewSize.x < 100) viewSize.x = 100;
@@ -332,39 +350,14 @@ int main(int argc, char* argv[]) {
             ImGui::End();
         }
 
-        // Vykreslenie scény do textúry
         SDL_SetRenderTarget(sdlRenderer, sceneTexture);
         SDL_SetRenderDrawColor(sdlRenderer, 22, 25, 32, 255);
         SDL_RenderClear(sdlRenderer);
 
-        // Mriežka
-        SDL_SetRenderDrawColor(sdlRenderer, 35, 42, 54, 255);
-        for (int x = 0; x < sceneTexW; x += 32) SDL_RenderDrawLine(sdlRenderer, x, 0, x, sceneTexH);
-        for (int y = 0; y < sceneTexH; y += 32) SDL_RenderDrawLine(sdlRenderer, 0, y, sceneTexW, y);
-
-        // Objekty scény cez Renderer2D
-        app.renderer.begin(app.playState == PlayState::PLAYING ? app.gameCamera : app.sceneCamera, sdlRenderer);
-
-        auto renderableEntities = app.world.query<Transform2D, Collider2D>();
-        for (Entity e : renderableEntities) {
-            const auto& t = app.world.getComponent<Transform2D>(e);
-            const auto& c = app.world.getComponent<Collider2D>(e);
-
-            bool isSelected = (e == app.selectedEntity);
-            Color color = isSelected ? Color(0.2f, 0.6f, 1.0f, 1.0f) :
-                          (e == 0 ? Color(0.2f, 0.8f, 0.3f, 1.0f) : Color(0.55f, 0.6f, 0.7f, 1.0f));
-
-            if (c.type == ColliderType::CIRCLE) {
-                app.renderer.drawCircle(t.position + c.offset, c.radius, color);
-            } else {
-                app.renderer.drawQuad(t.position + c.offset, c.size, color);
-            }
-        }
-        app.renderer.end();
+        SceneView::renderScene(app, app.renderer);
 
         SDL_SetRenderTarget(sdlRenderer, nullptr);
 
-        // Vykreslenie celého ImGui
         SDL_SetRenderDrawColor(sdlRenderer, 15, 17, 22, 255);
         SDL_RenderClear(sdlRenderer);
         ImGui::Render();
@@ -373,7 +366,6 @@ int main(int argc, char* argv[]) {
         SDL_RenderPresent(sdlRenderer);
     }
 
-    // Korektné ukončenie
     if (sceneTexture) SDL_DestroyTexture(sceneTexture);
     ImGui_ImplSDLRenderer2_Shutdown();
     ImGui_ImplSDL2_Shutdown();
@@ -383,6 +375,5 @@ int main(int argc, char* argv[]) {
     SDL_DestroyWindow(window);
     SDL_Quit();
 
-    std::cout << "[PJ Studio]: Kompletny editor uspesne ukonceny." << std::endl;
     return 0;
 }

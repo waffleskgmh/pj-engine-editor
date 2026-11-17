@@ -3,7 +3,9 @@
 
 #include <fstream>
 #include <sstream>
-#include <sys/stat.h>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 namespace PJEngine {
 
@@ -56,9 +58,8 @@ bool Project::createNew(const std::string& projectDir, const std::string& name) 
     config.projectName = name;
     currentProjectFilePath = projectDir + "/project.pjproj";
 
-    mkdir(projectDir.c_str(), 0755);
-    std::string assetsPath = projectDir + "/" + config.assetDirectory;
-    mkdir(assetsPath.c_str(), 0755);
+    fs::create_directories(projectDir);
+    fs::create_directories(projectDir + "/" + config.assetDirectory);
 
     projectLoaded = save();
     if (projectLoaded) {
@@ -79,8 +80,9 @@ bool Project::load(const std::string& projectFilePath) {
     config = ProjectConfig::deserialize(buffer.str());
     currentProjectFilePath = projectFilePath;
 
-    size_t lastSlash = projectFilePath.find_last_of("/\\");
-    projectRootDirectory = (lastSlash != std::string::npos) ? projectFilePath.substr(0, lastSlash) : ".";
+    fs::path p(projectFilePath);
+    projectRootDirectory = p.parent_path().string();
+    if (projectRootDirectory.empty()) projectRootDirectory = ".";
 
     projectLoaded = true;
     Logger::info("Projekt uspesne nacitany: " + config.projectName);

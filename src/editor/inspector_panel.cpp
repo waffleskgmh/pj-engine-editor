@@ -1,7 +1,10 @@
 #include "editor/inspector_panel.h"
 #include "editor/editor_command.h"
+#include "engine/ecs/component_registry.h"
 #include "engine/core/logger.h"
 #include "imgui.h"
+
+#include <cstring>
 
 namespace PJEngine {
 
@@ -57,6 +60,18 @@ void InspectorPanel::render(EditorApp& app) {
     renderScriptComponent(app, e);
     renderAudioSourceComponent(app, e);
 
+    for (const auto& compInfo : ComponentRegistry::get().getAllComponents()) {
+        if (compInfo.hasComponent(app.world, e)) {
+            bool open = true;
+            if (ImGui::CollapsingHeader(compInfo.name.c_str(), &open, ImGuiTreeNodeFlags_DefaultOpen)) {
+                compInfo.renderInspector(app.world, e);
+            }
+            if (!open) {
+                compInfo.removeComponent(app.world, e);
+            }
+        }
+    }
+
     ImGui::Spacing();
     ImGui::Separator();
     renderAddComponentMenu(app, e);
@@ -75,13 +90,15 @@ void InspectorPanel::renderTagComponent(EditorApp& app, Entity e) {
     auto& tc = app.world.getComponent<TagComponent>(e);
 
     char nameBuf[64];
-    strncpy(nameBuf, tc.name.c_str(), sizeof(nameBuf));
+    std::strncpy(nameBuf, tc.name.c_str(), sizeof(nameBuf) - 1);
+    nameBuf[sizeof(nameBuf) - 1] = '\0';
     if (ImGui::InputText("Nazov", nameBuf, sizeof(nameBuf))) {
         tc.name = nameBuf;
     }
 
     char tagBuf[32];
-    strncpy(tagBuf, tc.tag.c_str(), sizeof(tagBuf));
+    std::strncpy(tagBuf, tc.tag.c_str(), sizeof(tagBuf) - 1);
+    tagBuf[sizeof(tagBuf) - 1] = '\0';
     if (ImGui::InputText("Tag", tagBuf, sizeof(tagBuf))) {
         tc.tag = tagBuf;
     }
@@ -108,7 +125,6 @@ void InspectorPanel::renderTransform2D(EditorApp& app, Entity e) {
 
         if (ImGui::DragFloat2("Mierka", &t.scale.x, 0.05f)) changed = true;
 
-        // Ak sa hodnota prestala ťahať, uložíme akciu do Undo zásobníka
         if (ImGui::IsItemDeactivatedAfterEdit() && changed) {
             CommandHistory::get().executeCommand(std::make_unique<TransformCommand>(app.world, e, oldT, t));
         }
@@ -122,7 +138,8 @@ void InspectorPanel::renderSpriteRenderer(EditorApp& app, Entity e) {
     bool open = true;
     if (ImGui::CollapsingHeader("Sprite Renderer", &open, ImGuiTreeNodeFlags_DefaultOpen)) {
         char guidBuf[64];
-        strncpy(guidBuf, s.textureGuid.c_str(), sizeof(guidBuf));
+        std::strncpy(guidBuf, s.textureGuid.c_str(), sizeof(guidBuf) - 1);
+        guidBuf[sizeof(guidBuf) - 1] = '\0';
         if (ImGui::InputText("Textura GUID", guidBuf, sizeof(guidBuf))) {
             s.textureGuid = guidBuf;
         }
@@ -204,7 +221,8 @@ void InspectorPanel::renderScriptComponent(EditorApp& app, Entity e) {
     bool open = true;
     if (ImGui::CollapsingHeader("PJ Script", &open, ImGuiTreeNodeFlags_DefaultOpen)) {
         char pathBuf[128];
-        strncpy(pathBuf, sc.scriptPath.c_str(), sizeof(pathBuf));
+        std::strncpy(pathBuf, sc.scriptPath.c_str(), sizeof(pathBuf) - 1);
+        pathBuf[sizeof(pathBuf) - 1] = '\0';
         if (ImGui::InputText("Cesta k .pj", pathBuf, sizeof(pathBuf))) {
             sc.scriptPath = pathBuf;
         }
@@ -224,7 +242,8 @@ void InspectorPanel::renderAudioSourceComponent(EditorApp& app, Entity e) {
     bool open = true;
     if (ImGui::CollapsingHeader("Audio Source", &open, ImGuiTreeNodeFlags_DefaultOpen)) {
         char sndBuf[64];
-        strncpy(sndBuf, a.soundName.c_str(), sizeof(sndBuf));
+        std::strncpy(sndBuf, a.soundName.c_str(), sizeof(sndBuf) - 1);
+        sndBuf[sizeof(sndBuf) - 1] = '\0';
         if (ImGui::InputText("Zvukovy subor", sndBuf, sizeof(sndBuf))) {
             a.soundName = sndBuf;
         }
@@ -264,6 +283,12 @@ void InspectorPanel::renderAddComponentMenu(EditorApp& app, Entity e) {
         }
         if (!app.world.hasComponent<AudioSourceComponent>(e) && ImGui::MenuItem("Audio Source")) {
             app.world.addComponent<AudioSourceComponent>(e);
+        }
+
+        for (const auto& compInfo : ComponentRegistry::get().getAllComponents()) {
+            if (!compInfo.hasComponent(app.world, e) && ImGui::MenuItem(compInfo.name.c_str())) {
+                compInfo.addComponent(app.world, e);
+            }
         }
 
         ImGui::EndPopup();

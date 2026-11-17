@@ -4,8 +4,9 @@
 #include <iostream>
 #include <random>
 #include <iomanip>
-#include <sys/stat.h>
-#include <dirent.h>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 namespace PJEngine {
 
@@ -46,11 +47,11 @@ std::string AssetDatabase::generateRandomGuid() {
     static std::mt19937_64 gen(rd());
     static std::uniform_int_distribution<uint64_t> dis;
 
-    uint64_t part1 = dis(gen);
+    uint64_part1 = dis(gen);
     uint64_t part2 = dis(gen);
 
     std::stringstream ss;
-    ss << std::hex << std::setfill('0') << std::setw(16) << part1 << std::setw(16) << part2;
+    ss << std::hex << std::setfill('0') << std::setw(16) << dis(gen) << std::setw(16) << part2;
     return ss.str();
 }
 
@@ -77,47 +78,37 @@ void AssetDatabase::scanProjectAssets() {
     registry.clear();
     pathToGuidMap.clear();
 
-    // Vytvorenie root priečinka, ak neexistuje
-    mkdir(rootDirectory.c_str(), 0755);
+    fs::create_directories(rootDirectory);
     scanDirectoryRecursive(rootDirectory);
 }
 
 void AssetDatabase::scanDirectoryRecursive(const std::string& currentDir) {
-    DIR* dir = opendir(currentDir.c_str());
-    if (!dir) return;
+    if (!fs::exists(currentDir) || !fs::is_directory(currentDir)) return;
 
-    struct dirent* entry;
-    while ((entry = readdir(dir)) != nullptr) {
-        std::string name = entry->d_name;
-        if (name == "." || name == "..") continue;
+    for (const auto& entry : fs::directory_iterator(currentDir)) {
+        if (entry.is_directory()) {
+            scanDirectoryRecursive(entry.path().string());
+        } else if (entry.is_regular_file()) {
+            std::string fullPath = entry.path().string();
+            std::string filename = entry.path().filename().string();
 
-        std::string fullPath = currentDir + "/" + name;
-        struct stat st;
-        if (stat(fullPath.c_str(), &st) == -1) continue;
-
-        if (S_ISDIR(st.st_mode)) {
-            scanDirectoryRecursive(fullPath);
-        } else if (S_ISREG(st.st_mode)) {
-            // Ignorujeme samotné .meta súbory
-            if (fullPath.length() >= 5 && fullPath.substr(fullPath.length() - 5) == ".meta") {
+            if (filename.length() >= 5 && filename.substr(filename.length() - 5) == ".meta") {
                 continue;
             }
 
-            size_t dotPos = name.find_last_of('.');
-            std::string ext = (dotPos != std::string::npos) ? name.substr(dotPos) : "";
+            std::string ext = entry.path().extension().string();
             AssetType type = detectAssetTypeFromExtension(ext);
 
             std::string metaPath = fullPath + ".meta";
             AssetMetadata meta;
 
             if (!loadMetaFile(metaPath, meta)) {
-                // Vygenerujeme nové metadáta a pridelíme GUID
                 meta.guid = generateRandomGuid();
                 meta.filePath = fullPath;
                 meta.virtualPath = "assets://" + fullPath.substr(rootDirectory.length() + 1);
                 meta.type = type;
-                meta.fileSizeBytes = static_cast<uint64_t>(st.st_size);
-                meta.lastModifiedTimestamp = static_cast<uint64_t>(st.st_mtime);
+                meta.fileSizeBytes = static_cast<uint64_t>(fs::file_size(entry.path()));
+                meta.lastModifiedTimestamp = 0;
                 saveMetaFile(meta);
             }
 
@@ -125,7 +116,6 @@ void AssetDatabase::scanDirectoryRecursive(const std::string& currentDir) {
             pathToGuidMap[meta.filePath] = meta.guid;
         }
     }
-    closedir(dir);
 }
 
 bool AssetDatabase::saveMetaFile(const AssetMetadata& meta) {
@@ -155,10 +145,8 @@ std::string AssetDatabase::registerAsset(const std::string& relativePath, AssetT
     meta.virtualPath = "assets://" + relativePath;
     meta.type = type;
 
-    struct stat st;
-    if (stat(relativePath.c_str(), &st) == 0) {
-        meta.fileSizeBytes = static_cast<uint64_t>(st.st_size);
-        meta.lastModifiedTimestamp = static_cast<uint64_t>(st.st_mtime);
+    if (fs::exists(relativePath)) {
+        meta.fileSizeBytes = static_cast<uint64_t>(fs::file_size(relativePath));
     }
 
     saveMetaFile(meta);

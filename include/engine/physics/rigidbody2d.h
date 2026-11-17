@@ -1,13 +1,14 @@
 #pragma once
 
 #include "engine/core/math2d.h"
+#include <cstdint>
 
 namespace PJEngine {
 
 enum class BodyType {
-    STATIC,    // Nepohyblivé teleso s nekonečnou hmotnosťou (podlahy, steny)
-    DYNAMIC,   // Plne simulované fyzikálne teleso ovplyvnené gravitáciou a silami
-    KINEMATIC  // Pohybované skriptom (pohyblivé plošiny, výťahy)
+    STATIC,
+    DYNAMIC,
+    KINEMATIC
 };
 
 class RigidBody2D {
@@ -19,9 +20,9 @@ public:
     
     float mass = 1.0f;
     float invMass = 1.0f;
-    float restitution = 0.2f;  // Pružnosť / Odrazivosť (0 = plastelína, 1 = dokonalý odraz)
-    float friction = 0.3f;     // Trenie povrchu
-    float gravityScale = 1.0f; // Individuálne násobenie gravitácie
+    float restitution = 0.2f;
+    float friction = 0.3f;
+    float gravityScale = 1.0f;
     
     bool isGrounded = false;
     bool fixedRotation = true;

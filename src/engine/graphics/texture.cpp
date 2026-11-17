@@ -13,6 +13,7 @@
 #include <iostream>
 #include <algorithm>
 #include <fstream>
+#include <cstring>
 
 namespace PJEngine {
 
@@ -146,7 +147,6 @@ bool Texture2D::loadFromMemory(SDL_Renderer* renderer, const uint8_t* rgbaData, 
 bool Texture2D::loadFromFile(SDL_Renderer* renderer, const std::string& filePath, TextureFilter filterMode) {
     if (!renderer) return false;
 
-    // Skontrolujeme existenciu súboru
     std::ifstream file(filePath, std::ios::binary);
     if (!file.is_open()) {
         std::cerr << "[Texture2D]: Subor neexistuje: " << filePath << std::endl;
@@ -154,23 +154,18 @@ bool Texture2D::loadFromFile(SDL_Renderer* renderer, const std::string& filePath
     }
     file.close();
 
-    // Pokus 1: Načítanie cez natívny SDL2 BMP loader
     SDL_Surface* surface = SDL_LoadBMP(filePath.c_str());
-
-    // Pokus 2: Ak to nie je BMP, skúsime vytvoriť fallback farebnú textúru s označením cesty
     if (!surface) {
-        std::cerr << "[Texture2D]: Format nepodporovany priamo cez SDL_LoadBMP, vytvaram zastupnu texturu pre: " << filePath << std::endl;
-        createSolid(renderer, 64, 64, Color(0.8f, 0.2f, 0.8f, 1.0f)); // Magenta = chybná textúra
+        createSolid(renderer, 64, 64, Color(0.8f, 0.2f, 0.8f, 1.0f));
         sourcePath = filePath;
         return true;
     }
 
-    // Konverzia formátu na čisté RGBA32
     SDL_Surface* formattedSurface = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_RGBA32, 0);
     SDL_FreeSurface(surface);
 
     if (!formattedSurface) {
-        std::cerr << "[Texture2D]: Konverzia pixel formatu zlyhala: " << SDL_GetError() << std::endl;
+        std::cerr << "[Texture2D]: Konverzia formatu zlyhala: " << SDL_GetError() << std::endl;
         return false;
     }
 
@@ -183,7 +178,6 @@ bool Texture2D::loadFromFile(SDL_Renderer* renderer, const std::string& filePath
     );
 
     SDL_FreeSurface(formattedSurface);
-
     if (success) {
         sourcePath = filePath;
     }
@@ -211,10 +205,10 @@ void Texture2D::setPixel(uint32_t x, uint32_t y, uint32_t rgbaColor) {
     if (x >= width || y >= height || cpuPixelData.empty()) return;
     size_t idx = (y * width + x) * 4;
 
-    cpuPixelData[idx + 0] = rgbaColor & 0xFF;         // R
-    cpuPixelData[idx + 1] = (rgbaColor >> 8) & 0xFF;  // G
-    cpuPixelData[idx + 2] = (rgbaColor >> 16) & 0xFF; // B
-    cpuPixelData[idx + 3] = (rgbaColor >> 24) & 0xFF; // A
+    cpuPixelData[idx + 0] = rgbaColor & 0xFF;
+    cpuPixelData[idx + 1] = (rgbaColor >> 8) & 0xFF;
+    cpuPixelData[idx + 2] = (rgbaColor >> 16) & 0xFF;
+    cpuPixelData[idx + 3] = (rgbaColor >> 24) & 0xFF;
 }
 
 uint32_t Texture2D::getPixel(uint32_t x, uint32_t y) const {

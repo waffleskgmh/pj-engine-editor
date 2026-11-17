@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <cstdint>
 
 namespace PJEngine {
 
@@ -19,7 +20,6 @@ public:
     uint32_t getFrameCount() const;
     float getFPS() const;
 
-    // Fixed timestep akumulátor pre 2D fyziku
     bool shouldDoFixedStep();
     void consumeFixedStep();
 

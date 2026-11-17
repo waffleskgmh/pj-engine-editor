@@ -10,10 +10,8 @@ public:
     InspectorPanel() = default;
     ~InspectorPanel() = default;
 
-    // Vykreslenie celého panelu pre vybranú entitu v editore
     void render(EditorApp& app);
 
-    // Pomocné metódy pre externé manipulácie
     static bool setEntityPosition(EditorApp& app, Entity e, const Vec2& newPos);
     static bool setEntityRotation(EditorApp& app, Entity e, float radians);
     static bool setEntityRigidBodyMass(EditorApp& app, Entity e, float mass);

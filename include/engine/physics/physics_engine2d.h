@@ -5,6 +5,7 @@
 #include "engine/physics/rigidbody2d.h"
 #include "engine/physics/collider2d.h"
 #include "engine/physics/spatial_hash.h"
+#include "engine/physics/joint2d.h"
 #include <vector>
 
 namespace PJEngine {
@@ -28,18 +29,21 @@ struct RaycastHit2D {
 
 class PhysicsEngine2D {
 public:
-    Vec2 gravity = Vec2(0.0f, 980.0f); // 980 pixelov/s^2 (prirodzená 2D gravitácia)
+    Vec2 gravity = Vec2(0.0f, 980.0f);
     SpatialHashGrid broadphaseGrid;
+    std::vector<DistanceJoint2D> joints;
 
     explicit PhysicsEngine2D(float spatialCellSize = 64.0f);
 
     void step(ECSWorld& world, float dt);
+    void addJoint(const DistanceJoint2D& joint);
+    void clearJoints();
     
-    // Raycasting pre zbrane, lasery a viditeľnosť AI
     RaycastHit2D raycast(ECSWorld& world, const Vec2& origin, const Vec2& direction, float maxDistance);
 
 private:
     void integrateForces(ECSWorld& world, float dt);
+    void solveJoints(ECSWorld& world);
     void detectCollisions(ECSWorld& world, std::vector<CollisionManifold>& manifolds);
     void resolveCollisions(ECSWorld& world, std::vector<CollisionManifold>& manifolds);
     void integrateVelocities(ECSWorld& world, float dt);

@@ -13,6 +13,7 @@ public:
     static void renderScene(EditorApp& app, Renderer2D& renderer);
     static void applyGizmoDrag(EditorApp& app, const Vec2& deltaWorld);
     static Entity pickEntity(EditorApp& app, const Vec2& worldClick);
+    static void handleInput(EditorApp& app, const Vec2& viewportMousePos, bool isMouseDown, bool isMouseClicked);
 };
 
 } // namespace PJEngine
